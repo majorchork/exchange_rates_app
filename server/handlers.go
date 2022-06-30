@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/majorchork/rates_app/service"
 )
@@ -32,29 +33,27 @@ func (h *handler) GetLatestExchangeHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		resp, err := h.rateService.GetLatestExchange()
 		if err != nil {
-			respond(w, nil, 500)
+			respond(w, "error", http.StatusInternalServerError)
 		}
-		respond(w, resp, 200)
+		respond(w, resp, http.StatusOK)
 	}
 }
 
 func (h *handler) GetExchangeByDateHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		query := r.URL.Query()
-		date, ok := query["date"]
-
-		if !ok || len(date) == 0 {
-			// TODO: return a proper error message to the user
-			log.Fatal("something went wrong")
-		}
-
-		dateString := strings.Join(date, "-")
-		resp, err := h.rateService.GetExchangeByDate(dateString)
+		dateString := strings.TrimPrefix(r.URL.Path, "/rates/")
+		date, err := time.Parse("2006-01-02", dateString)
 		if err != nil {
-			respond(w, nil, 500)
+			respond(w, "invalid data", http.StatusBadRequest)
 		}
 
-		respond(w, resp, 200)
+		//dateString := strings.Join(date, "-")
+		resp, err := h.rateService.GetExchangeByDate(date)
+		if err != nil {
+			respond(w, "error", http.StatusInternalServerError)
+		}
+
+		respond(w, resp, http.StatusOK)
 	}
 }
 
@@ -62,10 +61,10 @@ func (h *handler) GetAnalyzedRatesHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		resp, err := h.rateService.GetAnalyzedRates()
 		if err != nil {
-			respond(w, nil, 500)
+			respond(w, "error", http.StatusInternalServerError)
 		}
 
-		respond(w, resp, 200)
+		respond(w, resp, http.StatusOK)
 	}
 
 }
