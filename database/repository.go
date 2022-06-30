@@ -3,13 +3,14 @@ package database
 import (
 	"fmt"
 	"github.com/majorchork/rates_app/models"
+	"time"
 )
 
 type DbRepository interface {
 	ResetDB() error
 	Store(envelope models.Envelope) error
 	FindByLatestDate() ([]models.Exchange, error)
-	FindByDateString(date string) ([]models.Exchange, error)
+	FindByDateString(date time.Time) ([]models.Exchange, error)
 	Find() ([]models.Exchange, error)
 }
 
@@ -89,14 +90,13 @@ ORDER by forex_date asc;
 }
 
 // FindByDateString returns exchanges
-func (repo *RateRepo) FindByDateString(date string) ([]models.Exchange, error) {
-
+func (repo *RateRepo) FindByDateString(date time.Time) ([]models.Exchange, error) {
 	row := repo.DB.Query(fmt.Sprintf(`
 		SELECT t.currency, t.rate, t.forex_date
 		FROM ExchangeRate t
 		WHERE t.forex_date = '%s'
 		ORDER BY t.currency;
-	`, date))
+	`, date.Format("2006-01-02")))
 	var exchanges []models.Exchange
 	for row.Next() {
 		var exchange models.Exchange
