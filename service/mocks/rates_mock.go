@@ -5,10 +5,11 @@
 package mocks
 
 import (
+	"github.com/majorchork/rates_app/models"
 	reflect "reflect"
+	time "time"
 
 	gomock "github.com/golang/mock/gomock"
-	models "github.com/majorchork/rates_app/models"
 )
 
 // MockExchangeRateService is a mock of ExchangeRateService interface.
@@ -50,7 +51,7 @@ func (mr *MockExchangeRateServiceMockRecorder) GetAnalyzedRates() *gomock.Call {
 }
 
 // GetExchangeByDate mocks base method.
-func (m *MockExchangeRateService) GetExchangeByDate(date string) (models.ExchangeRatesResponse, error) {
+func (m *MockExchangeRateService) GetExchangeByDate(date time.Time) (models.ExchangeRatesResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetExchangeByDate", date)
 	ret0, _ := ret[0].(models.ExchangeRatesResponse)
