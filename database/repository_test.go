@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
+	"time"
 )
 
 func TestDb_Interface(t *testing.T) {
@@ -42,7 +43,7 @@ func TestDb_Interface(t *testing.T) {
 	if len(rate) == 0 {
 		t.Error()
 	}
-	rate, err = dbHandler.FindByDateString("2022-05-10")
+	rate, err = dbHandler.FindByDateString(time.Date(2022, 06, 24, 0, 0, 0, 0, time.UTC))
 	if err != nil {
 		t.Error(err)
 	}
