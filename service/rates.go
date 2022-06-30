@@ -4,6 +4,7 @@ import (
 	"encoding/xml"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/majorchork/rates_app/database"
 	"github.com/majorchork/rates_app/models"
@@ -11,7 +12,7 @@ import (
 
 type ExchangeRateService interface {
 	GetLatestExchange() (models.ExchangeRatesResponse, error)
-	GetExchangeByDate(date string) (models.ExchangeRatesResponse, error)
+	GetExchangeByDate(date time.Time) (models.ExchangeRatesResponse, error)
 	GetAnalyzedRates() (models.ExchangeRatesResponse, error)
 }
 
@@ -78,7 +79,7 @@ func (rh Rates) GetLatestExchange() (ExchangeRateResponse models.ExchangeRatesRe
 }
 
 // GetExchangeByDate returns rates with certain date
-func (rh Rates) GetExchangeByDate(date string) (ExchangeRateResponse models.ExchangeRatesResponse, err error) {
+func (rh Rates) GetExchangeByDate(date time.Time) (ExchangeRateResponse models.ExchangeRatesResponse, err error) {
 	result, err := rh.DB.FindByDateString(date)
 	if err != nil {
 		return models.ExchangeRatesResponse{}, err
