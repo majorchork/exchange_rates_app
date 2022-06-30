@@ -3,16 +3,15 @@ package server
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
+	"github.com/majorchork/rates_app/models"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
-	"github.com/majorchork/rates_app/models"
-	mock_service "github.com/majorchork/rates_app/service/mocks"
+	mockService "github.com/majorchork/rates_app/service/mocks"
 )
 
 func TestGetLatestExchange(t *testing.T) {
@@ -27,32 +26,28 @@ func TestGetLatestExchange(t *testing.T) {
 		},
 	}
 	ctrl := gomock.NewController(t)
-	mockRateService := mock_service.NewMockExchangeRateService(ctrl)
-	_ = &handler{
+	mockRateService := mockService.NewMockExchangeRateService(ctrl)
+	h := &handler{
 		rateService: mockRateService,
 	}
-	//a := http.Server{Handler: h}
-	//handlers := NewHandler(*mockHelper)
+
 	body, err := json.Marshal(expected)
 	if err != nil {
 		t.Error(err)
 	}
 
 	mux := http.NewServeMux()
+	mux.HandleFunc("/rates/latest", h.GetLatestExchangeHandler())
 	t.Run("Testing for error", func(t *testing.T) {
 
 		mockRateService.EXPECT().GetLatestExchange().Return(models.ExchangeRatesResponse{}, errors.New("error"))
 		rw := httptest.NewRecorder()
-		fmt.Println(rw.Code)
-		req, err := http.NewRequest(http.MethodGet, "/rates/getlatest", strings.NewReader(string(body)))
+		req, err := http.NewRequest(http.MethodGet, "/rates/latest", nil)
 		if err != nil {
 			t.Error(err)
 		}
-		fmt.Println(rw.Code)
 		mux.ServeHTTP(rw, req)
-		//req.Header.Add("Content-Type", "application/json")
-		//fmt.Println(rw.Body.String())
-		fmt.Println(rw.Code)
+
 		assert.Equal(t, http.StatusInternalServerError, rw.Code)
 		assert.Contains(t, rw.Body.String(), "error")
 
@@ -61,13 +56,12 @@ func TestGetLatestExchange(t *testing.T) {
 
 		mockRateService.EXPECT().GetLatestExchange().Return(expected, nil)
 		rw := httptest.NewRecorder()
-		req, err := http.NewRequest(http.MethodGet, "/rates/getlatest", nil)
+		req, err := http.NewRequest(http.MethodGet, "/rates/latest", nil)
 		if err != nil {
 			t.Error(err)
 		}
 		req.Header.Add("Content-Type", "application/json")
 		mux.ServeHTTP(rw, req)
-		fmt.Println(rw.Body.String())
 		assert.Equal(t, http.StatusOK, rw.Code)
 		assert.Contains(t, rw.Body.String(), string(body))
 
@@ -77,12 +71,12 @@ func TestGetLatestExchange(t *testing.T) {
 
 func TestGetExchangeByDate(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	mockRateService := mock_service.NewMockExchangeRateService(ctrl)
-	_ = NewHandler(mockRateService)
+	mockRateService := mockService.NewMockExchangeRateService(ctrl)
+	h := NewHandler(mockRateService)
 
 	expected := models.ExchangeRatesResponse{
 		Base: "TEST",
-		Date: "2006-01-02",
+		Date: "2006-06-24",
 		Rates: map[string]float64{
 			"AUD": 1.5339,
 			"BGN": 1.9558,
@@ -96,33 +90,30 @@ func TestGetExchangeByDate(t *testing.T) {
 	}
 
 	mux := http.NewServeMux()
-	t.Run("Testing for b Request", func(t *testing.T) {
+	mux.HandleFunc("/rates/", h.GetExchangeByDateHandler())
+	t.Run("Testing for bad Request", func(t *testing.T) {
 
-		mockRateService.EXPECT().GetExchangeByDate("2006-01-02").Return(models.ExchangeRatesResponse{}, errors.New("error"))
+		mockRateService.EXPECT().GetExchangeByDate(time.Date(2006, 06, 24, 0, 0, 0, 0, time.UTC)).Return(models.ExchangeRatesResponse{}, errors.New("error"))
 		rw := httptest.NewRecorder()
-		req, err := http.NewRequest(http.MethodGet, "/rates?date=2006-01-02", nil)
+		req, err := http.NewRequest(http.MethodGet, "/rates/2006-06-24", nil)
 		if err != nil {
 			t.Error(err)
 		}
 		mux.ServeHTTP(rw, req)
-		//req.Header.Add("Content-Type", "application/json")
-		//fmt.Println(rw.Body.String())
-		fmt.Println(rw.Code)
 		assert.Equal(t, http.StatusInternalServerError, rw.Code)
 		assert.Contains(t, rw.Body.String(), "error")
 
 	})
 	t.Run("Testing for Successful Request", func(t *testing.T) {
 
-		mockRateService.EXPECT().GetExchangeByDate("2006-01-02").Return(expected, nil)
+		mockRateService.EXPECT().GetExchangeByDate(time.Date(2006, 06, 24, 0, 0, 0, 0, time.UTC)).Return(expected, nil)
 		rw := httptest.NewRecorder()
-		req, err := http.NewRequest(http.MethodGet, "/rates?date=2006-01-02", nil)
+		req, err := http.NewRequest(http.MethodGet, "/rates/2006-06-24", nil)
 		if err != nil {
 			t.Error(err)
 		}
+
 		mux.ServeHTTP(rw, req)
-		//req.Header.Add("Content-Type", "application/json")
-		fmt.Println(rw.Body.String())
 		assert.Equal(t, http.StatusOK, rw.Code)
 		assert.Contains(t, rw.Body.String(), string(body))
 
@@ -130,56 +121,79 @@ func TestGetExchangeByDate(t *testing.T) {
 
 }
 
-//func TestGetAnalyzedRates(t *testing.T) {
-//	expected := models.ExchangeRatesResponse{
-//		Base: "TEST",
-//		Date: "2022-06-24",
-//		AnalyzedRates: map[string]models.AnalyzedRates{
-//			"AUD": {
-//				1.4994,
-//				1.5693,
-//				1.5340524590163933,
-//				0,
-//				0,
-//			},
-//			"BGN": {
-//				1.9558,
-//				1.9558,
-//				1.9557999999999973,
-//				0,
-//				0,
-//			},
-//			"USD": {
-//				1.1562,
-//				1.2065,
-//				1.1783852459016388,
-//				0,
-//				0,
-//			},
-//			"ZAR": {
-//				14.7325,
-//				17.0212,
-//				16.06074426229508,
-//				0,
-//				0,
-//			},
-//		},
-//	}
-//	ctrl := gomock.NewController(t)
-//	mockRateService := mock_service.NewMockExchangeRateService(ctrl)
-//	_ = NewHandler(mockRateService)
-//
-//	t.Run("Testing for Successful Request", func(t *testing.T) {
-//
-//		mockRateService.EXPECT().GetAnalyzedRates().Return(expected)
-//		rw := httptest.NewRecorder()
-//		req, err := http.NewRequest(http.MethodGet, "/rates/analyze", nil)
-//		if err != nil {
-//			t.Error(err)
-//		}
-//		req.Header.Add("Content-Type", "application/json")
-//		fmt.Println(rw.Body.String())
-//
-//	})
-//
-//}
+func TestGetAnalyzedRates(t *testing.T) {
+	expected := models.ExchangeRatesResponse{
+		Base: "TEST",
+		Date: "2022-06-24",
+		AnalyzedRates: map[string]models.AnalyzedRates{
+			"AUD": {
+				1.4994,
+				1.5693,
+				1.5340524590163933,
+				0,
+				0,
+			},
+			"BGN": {
+				1.9558,
+				1.9558,
+				1.9557999999999973,
+				0,
+				0,
+			},
+			"USD": {
+				1.1562,
+				1.2065,
+				1.1783852459016388,
+				0,
+				0,
+			},
+			"ZAR": {
+				14.7325,
+				17.0212,
+				16.06074426229508,
+				0,
+				0,
+			},
+		},
+	}
+	ctrl := gomock.NewController(t)
+	mockRateService := mockService.NewMockExchangeRateService(ctrl)
+	h := NewHandler(mockRateService)
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/rates/analyze", h.GetAnalyzedRatesHandler())
+	body, err := json.Marshal(expected)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Run("Testing for error", func(t *testing.T) {
+
+		mockRateService.EXPECT().GetAnalyzedRates().Return(models.ExchangeRatesResponse{}, errors.New("error"))
+		rw := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodGet, "/rates/analyze", nil)
+		if err != nil {
+			t.Error(err)
+		}
+
+		mux.ServeHTTP(rw, req)
+
+		assert.Equal(t, http.StatusInternalServerError, rw.Code)
+		assert.Contains(t, rw.Body.String(), "error")
+
+	})
+	t.Run("Testing for Successful Request", func(t *testing.T) {
+
+		mockRateService.EXPECT().GetAnalyzedRates().Return(expected, nil)
+		rw := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodGet, "/rates/analyze", nil)
+		if err != nil {
+			t.Error(err)
+		}
+		req.Header.Add("Content-Type", "application/json")
+		mux.ServeHTTP(rw, req)
+		assert.Equal(t, http.StatusOK, rw.Code)
+		assert.Contains(t, rw.Body.String(), string(body))
+
+	})
+
+}
