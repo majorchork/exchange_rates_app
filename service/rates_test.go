@@ -3,6 +3,7 @@ package service
 import (
 	"os"
 	"testing"
+	"time"
 
 	"github.com/majorchork/rates_app/database"
 )
@@ -18,19 +19,34 @@ func TestRateService(t *testing.T) {
 		t.Error(err)
 	}
 	rateService.Prepare()
-	exrate := rateService.GetLatestExchange()
+	exrate, err := rateService.GetLatestExchange()
+	if err != nil {
+		t.Error(err)
+	}
 	if len(exrate.Rates) == 0 {
 		t.Error()
 	}
 	if exrate.Base == "" {
 		t.Error()
 	}
-	date := exrate.Date
-	exrate = rateService.GetExchangeByDate(date)
+	dateString := exrate.Date
+	date, err := time.Parse("2006-01-02", dateString)
+	if err != nil {
+		t.Error(err)
+	}
+	exrate, err = rateService.GetExchangeByDate(date)
+	if err != nil {
+		t.Error(err)
+	}
+
 	if len(exrate.Rates) == 0 {
 		t.Error()
 	}
-	exrate = rateService.GetAnalyzedRates()
+	exrate, err = rateService.GetAnalyzedRates()
+	if err != nil {
+		t.Error(err)
+	}
+
 	if len(exrate.AnalyzedRates) == 0 {
 		t.Error()
 	}
